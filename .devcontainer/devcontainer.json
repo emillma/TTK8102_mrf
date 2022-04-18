@@ -1,0 +1,46 @@
+{
+    // "image": "devcontainer:latest",
+    "image": "mrf:latest",
+    "name": "mrf",
+    // "forwardPorts": [
+    // 3000,
+    // 8050
+    // ],
+    "extensions": [
+        "ukoloff.win-ca",
+        "ms-azuretools.vscode-docker",
+        "ms-vscode.cpptools",
+        "ms-vscode.cpptools-extension-pack",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-vscode-remote.remote-ssh",
+        "kevinrose.vsc-python-indent",
+        "editorconfig.editorconfig",
+        "nvidia.nsight-vscode-edition",
+        "mhutchie.git-graph",
+        "znck.grammarly",
+        // "james-yu.latex-workshop",
+    ],
+    "runArgs": [
+        "--net=host",
+        // "--gpus=all",
+        // "--privileged",
+        // "--device=/dev/spidev0.0",
+        // "--runtime=nvidia",
+        // "--ipc=host",
+        // "-e DISPLAY=172.27.240.1:0.0",
+        // "--device=/dev/ttyUSB0",
+    ],
+    "containerEnv": {
+        "TEST": "emil"
+        // "http_proxy": "http://172.17.0.1:3128",
+        // "https_proxy": "http://172.17.0.1:3128"
+        // "HTTP_PROXY": "http://localhost:1234", //try to reactivate this if you have problems with extensions
+        //     "DISPLAY": "172.28.240.1:0.0"
+    },
+    // "mounts": [
+    //     "type=volume,src=sensorrig,dst=/volumes/sensorrig"
+    // ],
+    // "workspaceFolder": "/workspace",
+    // "workspaceMount": "source=sensorrig-ws,target=/workspace,type=volume",
+}

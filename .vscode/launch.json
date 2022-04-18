@@ -11,6 +11,14 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": true
+        },
+        {
+            "name": "Python: MRF",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/mrf",
+            "console": "integratedTerminal",
+            "justMyCode": true
         }
     ]
 }
