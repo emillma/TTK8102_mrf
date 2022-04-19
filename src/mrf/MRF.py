@@ -1,21 +1,28 @@
 import numpy as np
 from dataclasses import dataclass
-from typing import List
+from typing import List, Union
+
 
 @dataclass
 class MRF:
-    nodes: List['Node']
+    nodes: List['Union[RandomNode, ObservedNode]']
     factors: List['Factor']
 
+
 @dataclass
-class Node:
+class RandomNode:
     pass
 
+
+@dataclass
+class ObservedNode:
+    def __init__(self, fields):
+        raise NotImplemented
+
+
 class Factor:
-
-    def evalueate(self, A: Node, B: Node):
+    def evalueate(self, A: Union[RandomNode, ObservedNode], B: Union[RandomNode, ObservedNode]):
         raise NotImplemented
 
-    def condition(self, A: Node, B: Node):
+    def condition(self, A: Union[RandomNode, ObservedNode], B: Union[RandomNode, ObservedNode]):
         raise NotImplemented
-
