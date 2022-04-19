@@ -37,15 +37,16 @@ RUN pip3 install \
     jupyter \
     pandas
 RUN pip3 install \
+    plotly dash\
     numba \
-    torch \
+    torch torchvision\
     opencv-contrib-python \
     networkx \
-    plotly \
-    dash \
     dash_bootstrap_components 
 
 # to fix annoying pip xserver bug (https://github.com/pypa/pip/issues/8485)
 RUN printf "%s\n" "alias pip3='DISPLAY= pip3'" "alias python=python3" > ~/.bash_aliases
 
-# COPY .gitconfig ~
+# RUN git config --global user.email "emil.martens@gmail.com" && git config --global user.name "Emil Martens"
+
+COPY .gitconfig ~

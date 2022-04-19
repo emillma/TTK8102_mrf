@@ -1,8 +1,1 @@
-{
-    "jupyter.experimental.debugging": true,
-    // "remote.extensionKind": {
-    //     "scala-lang.scala": [
-    //         "workspace"
-    //     ]
-    // }
-}
+{}

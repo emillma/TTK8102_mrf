@@ -12,8 +12,8 @@
         "ms-python.vscode-pylance",
         "kevinrose.vsc-python-indent",
         "editorconfig.editorconfig",
-        "znck.grammarly",
-        "james-yu.latex-workshop",
+        // "znck.grammarly",
+        // "james-yu.latex-workshop",
         // "ms-vscode.cpptools",
         // "ms-vscode.cpptools-extension-pack",
         // "ms-vscode-remote.remote-ssh",
@@ -25,7 +25,7 @@
         "remote.downloadExtensionsLocally": false
     },
     "runArgs": [
-        // "--net=host",
+        "--net=host",
         // "--gpus=all",
         // "--privileged",
         // "--device=/dev/spidev0.0",
@@ -34,6 +34,7 @@
         // "-e DISPLAY=172.27.240.1:0.0",
         // "--device=/dev/ttyUSB0",
     ],
+    "postCreateCommand": "",
     "containerEnv": {
         "TEST": "emil"
         // "http_proxy": "http://172.17.0.1:3128",
