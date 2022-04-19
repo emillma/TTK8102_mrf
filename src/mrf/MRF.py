@@ -9,6 +9,7 @@ class MRF:
     factors: List['Factor']
 
 
+
 @dataclass
 class RandomNode:
     pass
@@ -19,7 +20,7 @@ class ObservedNode:
     def __init__(self, fields):
         raise NotImplemented
 
-
+@dataclass
 class Factor:
     def evalueate(self, A: Union[RandomNode, ObservedNode], B: Union[RandomNode, ObservedNode]):
         raise NotImplemented

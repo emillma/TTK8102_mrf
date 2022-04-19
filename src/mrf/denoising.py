@@ -1,5 +1,6 @@
 import MRF
 from typing import List
+import copy
 
 
 class UnknownPixelNode(MRF.RandomNode):
@@ -12,13 +13,15 @@ class KnownPixelNode(MRF.ObservedNode):
 
 class LatentPixelFactor(MRF.Factor):
 
-    def __init__(self, gamma, beta):
+    def __init__(self, gamma, beta, xn: UnknownPixelNode, xm: UnknownPixelNode):
         self.gamma = gamma
         self.beta = beta
+        self.xn = xn
+        self.xm = xm
 
-    def evalueate(self, xn: UnknownPixelNode, xm: UnknownPixelNode):
+    def evalueate(self):
         # TODO: Account for beta
-        return self.gamma * (xm.value - xn.value) ** 2
+        return self.gamma * (self.xm.value - self.xn.value) ** 2
 
     def condition(self, A: UnknownPixelNode, B: UnknownPixelNode):
         pass
@@ -26,11 +29,13 @@ class LatentPixelFactor(MRF.Factor):
 
 class ImageConsistencyFactor(MRF.Factor):
 
-    def __init__(self, sigma):
+    def __init__(self, sigma, xn: UnknownPixelNode, dn: KnownPixelNode):
         self.sigma = sigma
+        self.xn = xn
+        self.dn = dn
 
-    def evalueate(self, xn: UnknownPixelNode, dn: KnownPixelNode):
-        return ((xn.value - dn.value) ** 2) / (2 * self.sigma ** 2)
+    def evalueate(self):
+        return ((self.xn.value - self.dn.value) ** 2) / (2 * self.sigma ** 2)
 
     def condition(self, A: UnknownPixelNode, B: KnownPixelNode):
         if B is None:
@@ -58,5 +63,14 @@ def compute_from_neighbourhood(observed_pixel: KnownPixelNode,
             observed_image_factor.sigma ** 2) * sum_of_neighbours + observed_pixel.value) / (
                    1 - 2 * smoothing_factor.gamma * len(neighbouring_pixels) * (observed_image_factor.sigma ** 2))
 
+def get_neighbours(mrf: MRF.MRF, node: MRF.RandomNode):
+    for factor in mrf.factors:
 
+
+def icm(mrf: MRF.MRF):
+    iterations = 10
+    for i in range(iterations):
+        new_mrf = copy.deepcopy(mrf)
+        for random_node in [node for node in new_mrf.nodes if isinstance(node, MRF.RandomNode)]:
+            random_node.value = compute_from_neighbourhood()
 
