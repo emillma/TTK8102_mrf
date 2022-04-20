@@ -70,7 +70,7 @@ def compute_from_neighbourhood(observed_pixel: KnownPixelNode,
 
     res = (observed_pixel.value  - 2 * smoothing_factor.gamma * (observed_image_factor.sigma ** 2) * sum_of_neighbours ) / (
                          1 + 2 * smoothing_factor.gamma * len(neighbouring_pixels) * (observed_image_factor.sigma ** 2))
-    print("res:\t",res, ", gamma:\t", smoothing_factor.gamma, ", sigma:\t", observed_image_factor.sigma, ", sum of neighbours:\t", sum_of_neighbours, ", M:\t", len(neighbouring_pixels), "pixel value:\t", observed_pixel.value)
+    # print("res:\t",res, ", gamma:\t", smoothing_factor.gamma, ", sigma:\t", observed_image_factor.sigma, ", sum of neighbours:\t", sum_of_neighbours, ", M:\t", len(neighbouring_pixels), "pixel value:\t", observed_pixel.value)
     return res
 
 def get_neighbours(mrf: MRF.MRF, node: MRF.RandomNode):
@@ -98,7 +98,7 @@ def get_observation(mrf: MRF.MRF, node: MRF.RandomNode):
 
 def icm(mrf: MRF.MRF, shape):
     # Setup:
-    gamma = 0.1
+    gamma = 1
     beta = 1000
     sigma = 1
     smoothing_factor = LatentPixelFactor(gamma, beta, None, None)
@@ -109,7 +109,7 @@ def icm(mrf: MRF.MRF, shape):
         img_i = img_from_mrf(mrf, shape)
         img_i = img_i.astype(np.float)
         img_i = img_i/img_i.max()
-        cv2.imshow("iter"+str(i), img_i)
+        # cv2.imshow("iter"+str(i), img_i)
         new_mrf = copy.deepcopy(mrf)
         # for random_node in [node for node in new_mrf.nodes if isinstance(node, MRF.RandomNode)]:
         for e in range(len(mrf.nodes)):
@@ -117,9 +117,7 @@ def icm(mrf: MRF.MRF, shape):
                 neighbourhood = get_neighbours(mrf, mrf.nodes[e])
                 observation_node = get_observation(mrf, mrf.nodes[e])
                 old = mrf.nodes[e].value
-                print("Old determinsitc:", observation_node.value)
                 new_mrf.nodes[e].value = compute_from_neighbourhood(observation_node, neighbourhood, smoothing_factor, intensity_factor)
-                print(f"Old value:\t{old:.2f} New value:\t {new_mrf.nodes[e].value} new deterministic node: {observation_node.value}")
         mrf = new_mrf
     return mrf
 
@@ -154,9 +152,10 @@ def img_from_mrf(mrf, shape) -> np.ndarray:
 
 
 def main():
-    dataset = datasets.CIFAR10(
+    dataset = datasets.Country211(
         root="data",
-        train=True,
+        # annFile=False
+        # train=True,
         download=True,
     )
     pic = dataset[0][0]
@@ -174,6 +173,8 @@ def main():
     new_mrf = icm(mrf, shape)
 
     new_img = img_from_mrf(new_mrf, shape)
+    new_img = new_img.astype(np.float)
+    new_img = new_img / new_img.max()
     cv2.imshow("final", new_img)
     cv2.waitKey(0)
 
