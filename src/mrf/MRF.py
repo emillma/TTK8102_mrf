@@ -36,23 +36,15 @@ class BinaryFactor(Factor):
 @dataclass
 class MRF:
     nodes: List[Node]
-    factors: List['BinaryFactor']
 
 
     def __init__(self):
         self.nodes = []
-        self.factors = []
         self.graph = nx.Graph()
 
     def add_factor(self, factor: BinaryFactor):
-        # if factor.a not in self.nodes:
-        #     raise ValueError("Node ", factor.a, "not yet in this MRF.")
-        # if factor.b not in self.nodes:
-        #     raise ValueError("Node ", factor.b, "not yet in this MRF.")
-        # self.factors.append(factor)
         self.graph.add_edge(factor.a, factor.b, factor=factor)
-        # factor.a.neighbours.append(factor.b)
-        # factor.b.neighbours.append(factor.a)
+
 
     def add_node(self, node: Node):
         self.nodes.append(node)

@@ -7,8 +7,10 @@ from typing import List, Union
 import copy
 from torchvision import datasets
 import matplotlib.pyplot as plt
+from dataclasses import dataclass
 
-
+# TODO: Somehow make this a dataclass
+# @dataclass(frozen=True)
 class UnknownPixelNode(MRF.RandomNode):
     value: float
 
@@ -16,7 +18,7 @@ class UnknownPixelNode(MRF.RandomNode):
         super().__init__()
         self.value = value
 
-
+# TODO: Somehow make this a dataclass
 class KnownPixelNode(MRF.ObservedNode):
     value: float
 
@@ -71,16 +73,13 @@ def compute_from_neighbourhood(observed_pixel: KnownPixelNode,
     :param observed_image_factor:
     :return:
     """
-    # sum_of_neighbours = sum(map(lambda x: x.value, neighbouring_pixels))
+
     sum_of_neighbours = 0
     M = 0
     for neighbour in neighbouring_pixels:
         if (float(neighbour.value) - float(initial_guess_pixel_to_be_estimated.value)) ** 2 < smoothing_factor.beta:
             sum_of_neighbours += neighbour.value
             M += 1
-        else:
-            print(f"LS: {(float(neighbour.value) - float(initial_guess_pixel_to_be_estimated.value)) ** 2},\t beta:{smoothing_factor.beta}.")
-    # TODO Account for beta
 
     res = (observed_pixel.value + 2 * smoothing_factor.gamma * (
             observed_image_factor.sigma ** 2) * sum_of_neighbours) / (
@@ -90,26 +89,6 @@ def compute_from_neighbourhood(observed_pixel: KnownPixelNode,
     #       observed_pixel.value)
     return res
 
-
-# def get_neighbours(mrf: MRF.MRF, node: MRF.RandomNode):
-#     neigbours = []
-#     for factor in mrf.factors:
-#         if isinstance(factor, ImageConsistencyFactor):
-#             continue
-#         if id(factor.xn) == id(node):
-#             neigbours.append(factor.xm)
-#         elif id(factor.xm) == id(node):
-#             neigbours.append(factor.xn)
-#     return neigbours
-#
-# def get_observation(mrf: MRF.MRF, node: MRF.RandomNode):
-#     for factor in mrf.factors:
-#         if isinstance(factor, LatentPixelFactor):
-#             continue
-#         else:
-#             if id(factor.xn) == id(node):
-#                 return factor.dn
-#     raise ValueError("The node is not found in the MRF.")
 
 
 def icm(mrf: MRF.MRF, shape):
@@ -127,10 +106,8 @@ def icm(mrf: MRF.MRF, shape):
         img_i = img_i / img_i.max()
         cv2.imshow("iter" + str(i), img_i)
         new_mrf = copy.deepcopy(mrf)
-        # for random_node in [node for node in new_mrf.nodes if isinstance(node, MRF.RandomNode)]:
         for e in range(len(mrf.nodes)):
             if isinstance(mrf.nodes[e], MRF.RandomNode):
-                # neighbourhood = get_neighbours(mrf, mrf.nodes[e])
                 neighbourhood = []
                 observation_node = None
                 neighbours = list(nx.all_neighbors(mrf.graph, mrf.nodes[e]))
@@ -150,8 +127,7 @@ def icm(mrf: MRF.MRF, shape):
 
 
 def mrf_from_img(img: np.ndarray, beta, gamma, sigma) -> MRF.MRF:
-    nodes = []
-    factors = []
+
     node_grid = []
     mrf = MRF.MRF()
     for x0 in range(img.shape[0]):
@@ -162,20 +138,15 @@ def mrf_from_img(img: np.ndarray, beta, gamma, sigma) -> MRF.MRF:
             new_deterministic_node = KnownPixelNode(img[x0, x1])
             mrf.add_node(new_random_node)
             mrf.add_node(new_deterministic_node)
-            # nodes.append(new_random_node)
-            # nodes.append(new_deterministic_node)
 
             new_intensity_factor = ImageConsistencyFactor(sigma, new_random_node, new_deterministic_node)
-            # factors.append(new_intensity_factor)
             mrf.add_factor(new_intensity_factor)
 
             if x0 > 0:
                 new_left_factor = LatentPixelFactor(gamma, beta, new_random_node, node_grid[x0 - 1][x1])
                 mrf.add_factor(new_left_factor)
-                # factors.append(new_left_factor)
             if x1 > 0:
                 new_up_factor = LatentPixelFactor(gamma, beta, new_random_node, node_grid[x0][x1 - 1])
-                # factors.append(new_up_factor)
                 mrf.add_factor(new_up_factor)
 
     # subax1 = plt.subplot(121)
