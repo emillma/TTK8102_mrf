@@ -67,9 +67,11 @@ def compute_from_neighbourhood(observed_pixel: KnownPixelNode,
     sum_of_neighbours = sum(map(lambda x: x.value, neighbouring_pixels))
     # TODO Account for beta
 
-    return (2 * smoothing_factor.gamma * (
-            observed_image_factor.sigma ** 2) * sum_of_neighbours + observed_pixel.value) / (
-                   1 - 2 * smoothing_factor.gamma * len(neighbouring_pixels) * (observed_image_factor.sigma ** 2))
+
+    res = (observed_pixel.value  - 2 * smoothing_factor.gamma * (observed_image_factor.sigma ** 2) * sum_of_neighbours ) / (
+                         1 + 2 * smoothing_factor.gamma * len(neighbouring_pixels) * (observed_image_factor.sigma ** 2))
+    print("res:\t",res, ", gamma:\t", smoothing_factor.gamma, ", sigma:\t", observed_image_factor.sigma, ", sum of neighbours:\t", sum_of_neighbours, ", M:\t", len(neighbouring_pixels), "pixel value:\t", observed_pixel.value)
+    return res
 
 def get_neighbours(mrf: MRF.MRF, node: MRF.RandomNode):
     neigbours = []
@@ -94,9 +96,9 @@ def get_observation(mrf: MRF.MRF, node: MRF.RandomNode):
 
 
 
-def icm(mrf: MRF.MRF):
+def icm(mrf: MRF.MRF, shape):
     # Setup:
-    gamma = 1
+    gamma = 0.1
     beta = 1000
     sigma = 1
     smoothing_factor = LatentPixelFactor(gamma, beta, None, None)
@@ -104,12 +106,21 @@ def icm(mrf: MRF.MRF):
 
     iterations = 10
     for i in range(iterations):
+        img_i = img_from_mrf(mrf, shape)
+        img_i = img_i.astype(np.float)
+        img_i = img_i/img_i.max()
+        cv2.imshow("iter"+str(i), img_i)
         new_mrf = copy.deepcopy(mrf)
-        for random_node in [node for node in new_mrf.nodes if isinstance(node, MRF.RandomNode)]:
-            neighbourhood = get_neighbours(new_mrf, random_node)
-            observation_node = get_observation(new_mrf, random_node)
-            random_node.value = compute_from_neighbourhood(observation_node, neighbourhood, smoothing_factor, intensity_factor)
-        mrf  = new_mrf # TODO: This is not working, we need to refer to the old mrf when calculating the new value
+        # for random_node in [node for node in new_mrf.nodes if isinstance(node, MRF.RandomNode)]:
+        for e in range(len(mrf.nodes)):
+            if isinstance(mrf.nodes[e], MRF.RandomNode):
+                neighbourhood = get_neighbours(mrf, mrf.nodes[e])
+                observation_node = get_observation(mrf, mrf.nodes[e])
+                old = mrf.nodes[e].value
+                print("Old determinsitc:", observation_node.value)
+                new_mrf.nodes[e].value = compute_from_neighbourhood(observation_node, neighbourhood, smoothing_factor, intensity_factor)
+                print(f"Old value:\t{old:.2f} New value:\t {new_mrf.nodes[e].value} new deterministic node: {observation_node.value}")
+        mrf = new_mrf
     return mrf
 
 def mrf_from_img(img: np.ndarray, beta, gamma, sigma) -> MRF.MRF:
@@ -137,7 +148,7 @@ def mrf_from_img(img: np.ndarray, beta, gamma, sigma) -> MRF.MRF:
 
     return MRF.MRF(nodes, factors)
 
-def img_from_mrf(mrf, shape):
+def img_from_mrf(mrf, shape) -> np.ndarray:
     img = np.array([node.value for node in mrf.nodes if isinstance(node, MRF.RandomNode)]).reshape(shape)
     return img
 
@@ -157,7 +168,10 @@ def main():
 
     mrf = mrf_from_img(img, 1, 1, 1)
 
-    new_mrf = icm(mrf)
+    parital_img = img_from_mrf(mrf, shape)
+    cv2.imshow("partial", parital_img)
+
+    new_mrf = icm(mrf, shape)
 
     new_img = img_from_mrf(new_mrf, shape)
     cv2.imshow("final", new_img)
