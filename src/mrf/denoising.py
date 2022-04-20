@@ -8,6 +8,7 @@ import copy
 from torchvision import datasets
 import matplotlib.pyplot as plt
 
+
 class UnknownPixelNode(MRF.RandomNode):
     value: float
 
@@ -22,6 +23,7 @@ class KnownPixelNode(MRF.ObservedNode):
     def __init__(self, value):
         super().__init__()
         self.value = value
+
 
 class LatentPixelFactor(MRF.BinaryFactor):
 
@@ -58,6 +60,7 @@ class ImageConsistencyFactor(MRF.BinaryFactor):
 
 def compute_from_neighbourhood(observed_pixel: KnownPixelNode,
                                neighbouring_pixels: List[UnknownPixelNode],
+                               initial_guess_pixel_to_be_estimated: UnknownPixelNode,
                                smoothing_factor: LatentPixelFactor,
                                observed_image_factor: ImageConsistencyFactor):
     """
@@ -68,15 +71,24 @@ def compute_from_neighbourhood(observed_pixel: KnownPixelNode,
     :param observed_image_factor:
     :return:
     """
-    sum_of_neighbours = sum(map(lambda x: x.value, neighbouring_pixels))
+    # sum_of_neighbours = sum(map(lambda x: x.value, neighbouring_pixels))
+    sum_of_neighbours = 0
+    M = 0
+    for neighbour in neighbouring_pixels:
+        if (float(neighbour.value) - float(initial_guess_pixel_to_be_estimated.value)) ** 2 < smoothing_factor.beta:
+            sum_of_neighbours += neighbour.value
+            M += 1
+        else:
+            print(f"LS: {(float(neighbour.value) - float(initial_guess_pixel_to_be_estimated.value)) ** 2},\t beta:{smoothing_factor.beta}.")
     # TODO Account for beta
 
-
-    res = (observed_pixel.value  + 2 * smoothing_factor.gamma * (observed_image_factor.sigma ** 2) * sum_of_neighbours ) / (
-                         1 + 2 * smoothing_factor.gamma * len(neighbouring_pixels) * (observed_image_factor.sigma ** 2))
-    print("res:\t",res, ", gamma:\t", smoothing_factor.gamma, ", sigma:\t", observed_image_factor.sigma, ", sum of neighbours:\t", sum_of_neighbours, ", M:\t", len(neighbouring_pixels), "pixel value:\t", observed_pixel.value)
+    res = (observed_pixel.value + 2 * smoothing_factor.gamma * (
+            observed_image_factor.sigma ** 2) * sum_of_neighbours) / (
+                  1 + 2 * smoothing_factor.gamma * M * (observed_image_factor.sigma ** 2))
+    # print("res:\t", res, ", gamma:\t", smoothing_factor.gamma, ", sigma:\t", observed_image_factor.sigma,
+    #       ", sum of neighbours:\t", sum_of_neighbours, ", M:\t", len(neighbouring_pixels), "pixel value:\t",
+    #       observed_pixel.value)
     return res
-
 
 
 # def get_neighbours(mrf: MRF.MRF, node: MRF.RandomNode):
@@ -100,22 +112,20 @@ def compute_from_neighbourhood(observed_pixel: KnownPixelNode,
 #     raise ValueError("The node is not found in the MRF.")
 
 
-
-
 def icm(mrf: MRF.MRF, shape):
     # Setup:
     gamma = 100
-    beta = 1000
+    beta = 2000
     sigma = 1
     smoothing_factor = LatentPixelFactor(gamma, beta, None, None)
     intensity_factor = ImageConsistencyFactor(sigma, None, None)
 
     iterations = 5
     for i in range(iterations):
-        # img_i = img_from_mrf(mrf, shape)
-        # img_i = img_i.astype(np.float)
-        # img_i = img_i/img_i.max()
-        # cv2.imshow("iter"+str(i), img_i)
+        img_i = img_from_mrf(mrf, shape)
+        img_i = img_i.astype(float)
+        img_i = img_i / img_i.max()
+        cv2.imshow("iter" + str(i), img_i)
         new_mrf = copy.deepcopy(mrf)
         # for random_node in [node for node in new_mrf.nodes if isinstance(node, MRF.RandomNode)]:
         for e in range(len(mrf.nodes)):
@@ -132,9 +142,12 @@ def icm(mrf: MRF.MRF, shape):
                     else:
                         raise NotImplementedError
                 # observation_node = get_observation(mrf, mrf.nodes[e])
-                new_mrf.nodes[e].value = compute_from_neighbourhood(observation_node, neighbourhood, smoothing_factor, intensity_factor)
+                new_mrf.nodes[e].value = compute_from_neighbourhood(observation_node, neighbourhood, mrf.nodes[e],
+                                                                    smoothing_factor,
+                                                                    intensity_factor)
         mrf = new_mrf
     return mrf
+
 
 def mrf_from_img(img: np.ndarray, beta, gamma, sigma) -> MRF.MRF:
     nodes = []
@@ -157,11 +170,11 @@ def mrf_from_img(img: np.ndarray, beta, gamma, sigma) -> MRF.MRF:
             mrf.add_factor(new_intensity_factor)
 
             if x0 > 0:
-                new_left_factor = LatentPixelFactor(gamma, beta, new_random_node, node_grid[x0-1][x1])
+                new_left_factor = LatentPixelFactor(gamma, beta, new_random_node, node_grid[x0 - 1][x1])
                 mrf.add_factor(new_left_factor)
                 # factors.append(new_left_factor)
             if x1 > 0:
-                new_up_factor = LatentPixelFactor(gamma,beta,new_random_node, node_grid[x0][x1-1])
+                new_up_factor = LatentPixelFactor(gamma, beta, new_random_node, node_grid[x0][x1 - 1])
                 # factors.append(new_up_factor)
                 mrf.add_factor(new_up_factor)
 
@@ -169,9 +182,8 @@ def mrf_from_img(img: np.ndarray, beta, gamma, sigma) -> MRF.MRF:
     # nx.draw(mrf.graph,node_color=[0 if isinstance(node, KnownPixelNode) else 1 for node in mrf.graph.nodes])
     # plt.show()
 
-
-
     return mrf
+
 
 def img_from_mrf(mrf, shape) -> np.ndarray:
     img = np.array([node.value for node in mrf.nodes if isinstance(node, MRF.RandomNode)]).reshape(shape)
@@ -188,6 +200,7 @@ def main():
     pic = dataset[0][0]
     img = np.array(pic)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    img = cv2.pyrDown(img)
     shape = img.shape
 
     cv2.imshow("initial", img)
@@ -200,12 +213,10 @@ def main():
     new_mrf = icm(mrf, shape)
 
     new_img = img_from_mrf(new_mrf, shape)
-    new_img = new_img.astype(np.float)
+    new_img = new_img.astype(float)
     new_img = new_img / new_img.max()
     cv2.imshow("final", new_img)
     cv2.waitKey(0)
-
-
 
 
 if __name__ == '__main__':
