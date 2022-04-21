@@ -1,3 +1,4 @@
-[global]
-    name=Emil Martens
-    email=emil.martens@gmail.com
+
+[user]
+        email = emil.martens@gmail.com
+        name = Emil Martens

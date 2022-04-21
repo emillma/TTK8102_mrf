@@ -29,13 +29,9 @@ RUN apt-get update && apt-get install -y python3-pip
 
 # install packages
 RUN pip3 install \
-    numpy \
-    matplotlib \
-    pylint \
-    autopep8 \
-    sympy \
-    jupyter \
-    pandas
+    numpy scipy matplotlib pyqt5 pandas\
+    pylint autopep8 jupyter \
+    sympy 
 RUN pip3 install \
     plotly dash\
     numba \
