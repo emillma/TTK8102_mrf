@@ -16,7 +16,7 @@ class UnknownPixelNode(MRF.RandomNode):
     value: float
 
     def __init__(self, value):
-        super().__init__()
+        # super().__init__()
         self.value = value
 
 
