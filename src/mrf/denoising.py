@@ -72,6 +72,7 @@ def optimal_pixel_value(node_to_estimate: UnknownPixelNode,
                 node_to_estimate.value)) ** 2 < neighbour_factor.beta:
             sum_of_neighbours += neighbour_factor.get_other_node(node_to_estimate).value
             M += 1
+    print(f"{float(neighbour_factor.get_other_node(node_to_estimate).value)}, {float(node_to_estimate.value)}")
     # We assume that gamma is the same for all the neighbourfactors
     res = (observed_image_factor.get_other_node(node_to_estimate).value + 2 * smoothing_factors[0].gamma * (
             observed_image_factor.sigma ** 2) * sum_of_neighbours) / (
@@ -83,7 +84,7 @@ def optimal_pixel_value(node_to_estimate: UnknownPixelNode,
 
 
 def icm(mrf: MRF.MRF, shape):
-    iterations = 5
+    iterations = 20
     for i in range(iterations):
         img_i = img_from_mrf(mrf, shape)
         img_i = img_i.astype(float)
@@ -110,13 +111,13 @@ def icm(mrf: MRF.MRF, shape):
     return mrf
 
 
-def mrf_from_img(img: np.ndarray, beta, gamma, sigma) -> MRF.MRF:
+def mrf_from_img(img: np.ndarray, beta, gamma, sigma, initial_value) -> MRF.MRF:
     node_grid = []
     mrf = MRF.MRF()
     for x0 in range(img.shape[0]):
         node_grid.append([])
         for x1 in range(img.shape[1]):
-            new_random_node = UnknownPixelNode(img[x0, x1])
+            new_random_node = UnknownPixelNode(img[x0, x1] if initial_value == 0 else initial_value)
             node_grid[x0].append(new_random_node)
             new_deterministic_node = KnownPixelNode(img[x0, x1])
             mrf.add_node(new_random_node)
@@ -165,7 +166,7 @@ def main():
     beta = 2000
     sigma = 1
 
-    mrf = mrf_from_img(img, beta, gamma, sigma)
+    mrf = mrf_from_img(img, beta, gamma, sigma, 0)
 
     new_mrf = icm(mrf, shape)
 
@@ -189,12 +190,12 @@ def main2():
 
     cv2.imshow("Example_img", img)
 
-    gamma = 100
+    gamma = 10
     beta = 2000
     sigma = 1
-    mrf = mrf_from_img(img, beta, gamma, sigma)
+    mrf = mrf_from_img(img, beta, gamma, sigma, 0)
 
-    plt.figure(figsize=(2,2,))
+    plt.figure(figsize=(10,10,))
     subax1 = plt.subplot(121)
     subax1.set_aspect(1)
     pos_dict = dict([(node, (4* ((i / 2) % img.shape[0]), 4* (((i / 2) // img.shape[0]) + int(isinstance(node, KnownPixelNode)) * 0.5))) for (i, node,) in enumerate(mrf.nodes)])
@@ -204,4 +205,4 @@ def main2():
 
 
 if __name__ == '__main__':
-    main2()
+    main()
