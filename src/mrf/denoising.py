@@ -9,6 +9,7 @@ from torchvision import datasets
 import matplotlib.pyplot as plt
 from dataclasses import dataclass
 
+
 # TODO: Somehow make this a dataclass
 # @dataclass(frozen=True)
 class UnknownPixelNode(MRF.RandomNode):
@@ -17,6 +18,7 @@ class UnknownPixelNode(MRF.RandomNode):
     def __init__(self, value):
         super().__init__()
         self.value = value
+
 
 # TODO: Somehow make this a dataclass
 class KnownPixelNode(MRF.ObservedNode):
@@ -60,45 +62,27 @@ class ImageConsistencyFactor(MRF.BinaryFactor):
             return
 
 
-def compute_from_neighbourhood(observed_pixel: KnownPixelNode,
-                               neighbouring_pixels: List[UnknownPixelNode],
-                               initial_guess_pixel_to_be_estimated: UnknownPixelNode,
-                               smoothing_factor: LatentPixelFactor,
+def compute_from_neighbourhood(node_to_estimate: UnknownPixelNode,
+                               smoothing_factors: List[LatentPixelFactor],
                                observed_image_factor: ImageConsistencyFactor):
-    """
-    This is created from the formulas in https://homepages.inf.ed.ac.uk/rbf/CVonline/LOCAL_COPIES/AV0809/ORCHARD/
-    :param observed_pixel:
-    :param neighbouring_pixels:
-    :param smoothing_factor:
-    :param observed_image_factor:
-    :return:
-    """
-
     sum_of_neighbours = 0
     M = 0
-    for neighbour in neighbouring_pixels:
-        if (float(neighbour.value) - float(initial_guess_pixel_to_be_estimated.value)) ** 2 < smoothing_factor.beta:
-            sum_of_neighbours += neighbour.value
+    for neighbour_factor in smoothing_factors:
+        if (float(neighbour_factor.get_other_node(node_to_estimate).value) - float(
+                node_to_estimate.value)) ** 2 < neighbour_factor.beta:
+            sum_of_neighbours += neighbour_factor.get_other_node(node_to_estimate).value
             M += 1
-
-    res = (observed_pixel.value + 2 * smoothing_factor.gamma * (
+    # We assume that gamma is the same for all the neighbourfactors
+    res = (observed_image_factor.get_other_node(node_to_estimate).value + 2 * smoothing_factors[0].gamma * (
             observed_image_factor.sigma ** 2) * sum_of_neighbours) / (
-                  1 + 2 * smoothing_factor.gamma * M * (observed_image_factor.sigma ** 2))
+                  1 + 2 * smoothing_factors[0].gamma * M * (observed_image_factor.sigma ** 2))
     # print("res:\t", res, ", gamma:\t", smoothing_factor.gamma, ", sigma:\t", observed_image_factor.sigma,
     #       ", sum of neighbours:\t", sum_of_neighbours, ", M:\t", len(neighbouring_pixels), "pixel value:\t",
     #       observed_pixel.value)
     return res
 
 
-
 def icm(mrf: MRF.MRF, shape):
-    # Setup:
-    gamma = 100
-    beta = 2000
-    sigma = 1
-    smoothing_factor = LatentPixelFactor(gamma, beta, None, None)
-    intensity_factor = ImageConsistencyFactor(sigma, None, None)
-
     iterations = 5
     for i in range(iterations):
         img_i = img_from_mrf(mrf, shape)
@@ -108,26 +92,25 @@ def icm(mrf: MRF.MRF, shape):
         new_mrf = copy.deepcopy(mrf)
         for e in range(len(mrf.nodes)):
             if isinstance(mrf.nodes[e], MRF.RandomNode):
-                neighbourhood = []
-                observation_node = None
-                neighbours = list(nx.all_neighbors(mrf.graph, mrf.nodes[e]))
-                for neighbour in neighbours:
+
+                latentPixelFactors = []
+                observedPixelFactor = None
+                adjecent_factors = mrf.graph.adj[mrf.nodes[e]]
+                for neighbour in adjecent_factors:
                     if isinstance(neighbour, UnknownPixelNode):
-                        neighbourhood.append(neighbour)
+                        latentPixelFactors.append(adjecent_factors[neighbour]['factor'])
                     elif isinstance(neighbour, KnownPixelNode):
-                        observation_node = neighbour
+                        observedPixelFactor = adjecent_factors[neighbour]['factor']
                     else:
                         raise NotImplementedError
-                # observation_node = get_observation(mrf, mrf.nodes[e])
-                new_mrf.nodes[e].value = compute_from_neighbourhood(observation_node, neighbourhood, mrf.nodes[e],
-                                                                    smoothing_factor,
-                                                                    intensity_factor)
+                new_mrf.nodes[e].value = compute_from_neighbourhood(mrf.nodes[e],
+                                                                    latentPixelFactors,
+                                                                    observedPixelFactor)
         mrf = new_mrf
     return mrf
 
 
 def mrf_from_img(img: np.ndarray, beta, gamma, sigma) -> MRF.MRF:
-
     node_grid = []
     mrf = MRF.MRF()
     for x0 in range(img.shape[0]):
@@ -164,10 +147,13 @@ def img_from_mrf(mrf, shape) -> np.ndarray:
 def main():
     dataset = datasets.Country211(
         root="data",
-        # annFile=False
-        # train=True,
         download=True,
     )
+    # dataset = datasets.CIFAR10(
+    #     root="data",
+    #     train=True,
+    #     download=True,
+    # )
     pic = dataset[0][0]
     img = np.array(pic)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -175,11 +161,11 @@ def main():
     shape = img.shape
 
     cv2.imshow("initial", img)
+    gamma = 100
+    beta = 2000
+    sigma = 1
 
-    mrf = mrf_from_img(img, 1, 1, 1)
-
-    parital_img = img_from_mrf(mrf, shape)
-    cv2.imshow("partial", parital_img)
+    mrf = mrf_from_img(img, beta, gamma, sigma)
 
     new_mrf = icm(mrf, shape)
 
