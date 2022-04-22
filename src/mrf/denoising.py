@@ -62,9 +62,9 @@ class ImageConsistencyFactor(MRF.BinaryFactor):
             return
 
 
-def compute_from_neighbourhood(node_to_estimate: UnknownPixelNode,
-                               smoothing_factors: List[LatentPixelFactor],
-                               observed_image_factor: ImageConsistencyFactor):
+def optimal_pixel_value(node_to_estimate: UnknownPixelNode,
+                        smoothing_factors: List[LatentPixelFactor],
+                        observed_image_factor: ImageConsistencyFactor):
     sum_of_neighbours = 0
     M = 0
     for neighbour_factor in smoothing_factors:
@@ -103,9 +103,9 @@ def icm(mrf: MRF.MRF, shape):
                         observedPixelFactor = adjecent_factors[neighbour]['factor']
                     else:
                         raise NotImplementedError
-                new_mrf.nodes[e].value = compute_from_neighbourhood(mrf.nodes[e],
-                                                                    latentPixelFactors,
-                                                                    observedPixelFactor)
+                new_mrf.nodes[e].value = optimal_pixel_value(mrf.nodes[e],
+                                                             latentPixelFactors,
+                                                             observedPixelFactor)
         mrf = new_mrf
     return mrf
 
