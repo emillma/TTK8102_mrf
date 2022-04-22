@@ -175,6 +175,33 @@ def main():
     cv2.imshow("final", new_img)
     cv2.waitKey(0)
 
+def main2():
+    dataset = datasets.CIFAR10(
+        root="data",
+        train=True,
+        download=True,
+    )
+    pic = dataset[0][0]
+    img = np.array(pic)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    img = cv2.pyrDown(img)
+    img = cv2.pyrDown(img)
+
+    cv2.imshow("Example_img", img)
+
+    gamma = 100
+    beta = 2000
+    sigma = 1
+    mrf = mrf_from_img(img, beta, gamma, sigma)
+
+    plt.figure(figsize=(2,2,))
+    subax1 = plt.subplot(121)
+    subax1.set_aspect(1)
+    pos_dict = dict([(node, (4* ((i / 2) % img.shape[0]), 4* (((i / 2) // img.shape[0]) + int(isinstance(node, KnownPixelNode)) * 0.5))) for (i, node,) in enumerate(mrf.nodes)])
+    color_array = [0 if isinstance(node, KnownPixelNode) else 1 for node in mrf.graph.nodes]
+    nx.draw(mrf.graph,pos_dict, node_color=color_array, node_size=50)
+    plt.show()
+
 
 if __name__ == '__main__':
-    main()
+    main2()
